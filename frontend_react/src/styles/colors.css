@@ -1,0 +1,58 @@
+/* Unified Color Palette */
+:root {
+  /* Primary Colors */
+  --color-primary: #1f1f1f;
+  --color-primary-hover: #2f2f2f;
+  --color-primary-light: #4a4a4a;
+  
+  /* Secondary Colors */
+  --color-secondary: #ffffff;
+  --color-secondary-hover: #f4f4f4;
+  --color-secondary-border: #e0e0e0;
+  
+  /* Accent Colors */
+  --color-blue: #2563eb;
+  --color-blue-hover: #1d4ed8;
+  --color-blue-light: rgba(37, 99, 235, 0.1);
+  --color-blue-bg: rgba(37, 99, 235, 0.05);
+  
+  --color-red: #dc2626;
+  --color-red-hover: #b91c1c;
+  --color-red-light: rgba(220, 38, 38, 0.1);
+  --color-red-bg: rgba(220, 38, 38, 0.05);
+  
+  --color-green: #16a34a;
+  --color-green-hover: #15803d;
+  --color-green-light: rgba(22, 163, 74, 0.1);
+  --color-green-bg: rgba(22, 163, 74, 0.05);
+  
+  /* Neutral Colors */
+  --color-gray: #666666;
+  --color-gray-light: #888888;
+  --color-gray-lighter: #e0e0e0;
+  --color-gray-lightest: #f4f4f4;
+  
+  /* Background Colors */
+  --bg-primary: #f6f7ed;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f4f4f4;
+  
+  /* Text Colors */
+  --text-primary: #1f1f1f;
+  --text-secondary: #666666;
+  --text-tertiary: #888888;
+  --text-inverse: #ffffff;
+  
+  /* Border Colors */
+  --border-primary: #e0e0e0;
+  --border-secondary: #1f1f1f;
+  
+  /* Shadow Colors */
+  --shadow-sm: rgba(31, 31, 31, 0.1);
+  --shadow-md: rgba(31, 31, 31, 0.15);
+  --shadow-lg: rgba(31, 31, 31, 0.2);
+  --shadow-red: rgba(220, 38, 38, 0.2);
+  --shadow-green: rgba(22, 163, 74, 0.2);
+  --shadow-blue: rgba(37, 99, 235, 0.2);
+}
+

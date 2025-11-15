@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Backend Service - FastAPI
+  backend:
+    build: ./backend_fastapi
+    container_name: backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB_NAME=app_db
+      - JWT_ALGORITHM=RS256
+      - JWT_EXPIRATION_HOURS=24
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@password123}
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend_fastapi:/app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Frontend Service - React
+  frontend:
+    build:
+      context: ./frontend_react
+      args:
+        - REACT_APP_API_BASE_URL=http://localhost:8000
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # MongoDB Service
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=app_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
+

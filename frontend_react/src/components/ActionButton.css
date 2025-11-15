@@ -1,0 +1,104 @@
+/* Action Button Styles */
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  background-color: transparent;
+  border: 1.5px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(31, 31, 31, 0.15);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Edit Button - Blue */
+.action-btn-edit {
+  color: var(--color-blue, #2563eb);
+  border-color: var(--color-blue, #2563eb);
+  background-color: var(--color-blue-bg, rgba(37, 99, 235, 0.05));
+}
+
+.action-btn-edit:hover:not(:disabled) {
+  background-color: var(--color-blue-light, rgba(37, 99, 235, 0.1));
+  border-color: var(--color-blue-hover, #1d4ed8);
+  color: var(--color-blue-hover, #1d4ed8);
+}
+
+/* Delete Button - Red */
+.action-btn-delete {
+  color: var(--color-red, #dc2626);
+  border-color: var(--color-red, #dc2626);
+  background-color: var(--color-red-bg, rgba(220, 38, 38, 0.05));
+}
+
+.action-btn-delete:hover:not(:disabled) {
+  background-color: var(--color-red-light, rgba(220, 38, 38, 0.1));
+  border-color: var(--color-red-hover, #b91c1c);
+  color: var(--color-red-hover, #b91c1c);
+}
+
+/* Save Button - Green */
+.action-btn-save {
+  color: var(--color-green, #16a34a);
+  border-color: var(--color-green, #16a34a);
+  background-color: var(--color-green-bg, rgba(22, 163, 74, 0.05));
+}
+
+.action-btn-save:hover:not(:disabled) {
+  background-color: var(--color-green-light, rgba(22, 163, 74, 0.1));
+  border-color: var(--color-green-hover, #15803d);
+  color: var(--color-green-hover, #15803d);
+}
+
+/* Cancel Button - Gray */
+.action-btn-cancel {
+  color: var(--color-gray, #666666);
+  border-color: var(--color-secondary-border, #e0e0e0);
+  background-color: var(--color-secondary, #ffffff);
+}
+
+.action-btn-cancel:hover:not(:disabled) {
+  background-color: var(--color-secondary-hover, #f4f4f4);
+  border-color: var(--border-secondary, #1f1f1f);
+  color: var(--text-primary, #1f1f1f);
+}
+
+/* Download Button - Green */
+.action-btn-download {
+  color: var(--color-green, #16a34a);
+  border-color: var(--color-green, #16a34a);
+  background-color: var(--color-green-bg, rgba(22, 163, 74, 0.05));
+}
+
+.action-btn-download:hover:not(:disabled) {
+  background-color: var(--color-green-light, rgba(22, 163, 74, 0.1));
+  border-color: var(--color-green-hover, #15803d);
+  color: var(--color-green-hover, #15803d);
+}
+

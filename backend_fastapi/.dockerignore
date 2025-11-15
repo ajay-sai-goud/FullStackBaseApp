@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Python virtual environment
+.venv
+venv
+env
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local development config
+.vscode/
+.idea/
+
+# Environment files
+# Never commit your .env file containing secrets!
+.env
+*.env
+
+# Documentation - not needed in the final image
+README.md 
