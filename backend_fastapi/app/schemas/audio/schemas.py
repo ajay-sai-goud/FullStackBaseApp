@@ -51,6 +51,11 @@ class AudioFileListQueryParams(BaseModel):
     limit: int = Field(100, ge=1, le=100, description="Maximum number of records to return")
 
 
+class AudioFileUpload(BaseModel):
+    """Request schema for uploading audio file."""
+    pass
+
+
 class AudioFileUpdate(BaseModel):
     """Request schema for updating audio file metadata."""
     file_name: Optional[str] = Field(None, min_length=1, max_length=255, description="New filename for the audio file")

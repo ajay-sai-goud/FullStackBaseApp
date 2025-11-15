@@ -1,5 +1,5 @@
 """Audio file API endpoints."""
-from fastapi import APIRouter, Depends, UploadFile, File, status, HTTPException, Path as PathParam, Body
+from fastapi import APIRouter, Depends, UploadFile, File, status, HTTPException, Path as PathParam, Body, Form
 from loguru import logger
 
 from app.schemas.audio import (
@@ -8,7 +8,8 @@ from app.schemas.audio import (
     AudioFileResponse,
     AudioFileListQueryParams,
     AudioFileIdPathParams,
-    AudioFileUpdate
+    AudioFileUpdate,
+    AudioFileUpload
 )
 from app.core.dependencies import (
     get_audio_service,
@@ -35,19 +36,18 @@ async def list_audio_files(
     audio_service: IAudioService = Depends(get_audio_service)
 ) -> AudioFileListResponse:
     """
-    List all audio files for the authenticated user.
+    List all audio files (shared across all users).
     
     - **skip**: Number of records to skip (pagination)
     - **limit**: Maximum number of records to return
     
     **Required Permission:** `read:audio` or `admin`
     
-    Returns list of audio files with metadata.
+    Returns list of all audio files with metadata.
     """
-    logger.info(f"Listing audio files for user: {current_user.id}")
+    logger.info(f"Listing all audio files")
     
-    files = await audio_service.list_user_files(
-        user_id=current_user.id,
+    files = await audio_service.list_all_files(
         skip=query.skip,
         limit=query.limit
     )
@@ -74,16 +74,15 @@ async def play_audio_file(
     **Required Permission:** `read:audio` or `admin`
     
     Returns presigned URL that expires in 1 hour (3600 seconds).
-    Verifies file ownership before returning URL to ensure users can only access their own files.
+    All files are shared and accessible to all authenticated users.
     The presigned URL can be used directly in HTML5 `<audio>` tags for playback.
     """
     # Validate using schema
     path_params = AudioFileIdPathParams(id=id)
-    logger.info(f"Getting playback URL for file {path_params.id} for user {current_user.id}")
+    logger.info(f"Getting playback URL for file {path_params.id}")
     
     return await audio_service.get_file_for_playback(
-        file_id=path_params.id,
-        user_id=current_user.id
+        file_id=path_params.id
     )
 
 
@@ -114,19 +113,19 @@ async def upload_audio_file(
     - Maximum: 100MB (configurable via `MAX_AUDIO_FILE_SIZE_MB` environment variable)
     
     **S3 Storage Structure:**
-    - Files are stored in S3 with structure: `users/{user_id}/{file_id}/{filename}`
+    - Files are stored in S3 with structure: `{file_id}/{filename}`
     - This ensures direct mapping between S3 keys and database file_id
     
     **Required Permission:** `write:audio` or `admin`
     
     Uploads file to S3, stores metadata in database, and returns file details.
     Validates file type, extension, and size before upload.
+    All files are shared and accessible to all authenticated users.
     """
-    logger.info(f"Uploading audio file for user: {current_user.id}")
+    logger.info(f"Uploading audio file")
     
     return await audio_service.upload_file(
-        file=file,
-        user_id=current_user.id
+        file=file
     )
 
 
@@ -150,16 +149,15 @@ async def update_audio_file(
     
     **Required Permission:** `write:audio` or `admin`
     
-    Updates file metadata in the database. Verifies file ownership before allowing update.
+    Updates file metadata in the database.
     Currently supports updating the file name only.
     """
     # Validate using schema
     path_params = AudioFileIdPathParams(id=id)
-    logger.info(f"Updating file {path_params.id} for user {current_user.id}")
+    logger.info(f"Updating file {path_params.id}")
     
     return await audio_service.update_file(
         file_id=path_params.id,
-        user_id=current_user.id,
         file_name=update_data.file_name
     )
 
@@ -182,15 +180,13 @@ async def delete_audio_file(
     **Required Permission:** `delete:audio` or `admin`
     
     Deletes the file from S3 storage and removes the record from the database.
-    Verifies file ownership before allowing delete to ensure users can only delete their own files.
     """
     # Validate using schema
     path_params = AudioFileIdPathParams(id=id)
-    logger.info(f"Deleting file {path_params.id} for user {current_user.id}")
+    logger.info(f"Deleting file {path_params.id}")
     
     await audio_service.delete_file(
-        file_id=path_params.id,
-        user_id=current_user.id
+        file_id=path_params.id
     )
     
     return None

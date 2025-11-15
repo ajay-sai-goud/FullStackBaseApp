@@ -17,6 +17,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ fileId, fileName }) => {
   const [volume, setVolume] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const isDraggingRef = useRef(isDragging);
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
   const [isVolumeDragging, setIsVolumeDragging] = useState<boolean>(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -54,7 +58,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ fileId, fileName }) => {
 
     // Event listeners
     const updateTime = () => {
-      if (!isDragging && audioRef.current) {
+      if (!isDraggingRef.current && audioRef.current) {
         setCurrentTime(audioRef.current.currentTime);
       }
     };
@@ -93,7 +97,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ fileId, fileName }) => {
       audioRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioUrl, isDragging]);
+  }, [audioUrl]);
 
   // Update volume and mute
   useEffect(() => {

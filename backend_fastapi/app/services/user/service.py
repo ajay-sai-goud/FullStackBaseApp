@@ -8,7 +8,7 @@ from app.schemas.user import UserCreate, UserUpdate, UserDisplay
 from app.core.database.interfaces import IUserManager
 from app.schemas.user.models import User
 from app.utils.password import hash_password
-from app.core.constants import DEFAULT_USER_PERMISSIONS
+from app.core.constants import DEFAULT_USER_PERMISSIONS, Permissions
 
 if TYPE_CHECKING:
     from app.services.audio.interfaces import IAudioService
@@ -49,7 +49,11 @@ class UserService:
             hashed_password = hash_password(user_data.password)
             
             # Initialize permissions (use provided or default)
-            permissions = user_data.permissions if user_data.permissions is not None else DEFAULT_USER_PERMISSIONS
+            permissions = user_data.permissions if user_data.permissions is not None else DEFAULT_USER_PERMISSIONS.copy()
+            
+            # Ensure read:audio is always included (required permission)
+            if Permissions.READ_AUDIO not in permissions:
+                permissions.append(Permissions.READ_AUDIO)
             
             # Create user model
             new_user = User(
@@ -152,9 +156,21 @@ class UserService:
                 # Hash new password
                 update_dict["hashed_password"] = hash_password(update_dict.pop("password"))
             
+            # Handle permissions update - ensure read:audio is always included
+            if "permissions" in update_dict:
+                permissions = update_dict["permissions"]
+                # Ensure read:audio is always included (required permission)
+                if Permissions.READ_AUDIO not in permissions:
+                    permissions.append(Permissions.READ_AUDIO)
+                update_dict["permissions"] = permissions
+            
             # Update user model
             for key, value in update_dict.items():
                 setattr(existing_user, key, value)
+            
+            # Final check: ensure read:audio is in permissions after update
+            if Permissions.READ_AUDIO not in existing_user.permissions:
+                existing_user.permissions.append(Permissions.READ_AUDIO)
             
             # Save to database
             updated_user = await self.user_manager.update(existing_user)
@@ -172,7 +188,7 @@ class UserService:
             )
 
     async def delete_user(self, user_id: str) -> None:
-        """Delete a user by ID and all associated audio files."""
+        """Delete a user by ID."""
         with tracer.start_as_current_span("user_service_delete") as span:
             span.set_attribute("user.id", user_id)
             
@@ -184,19 +200,8 @@ class UserService:
                     detail="User not found"
                 )
             
-            # Delete all associated audio files if audio_service is available
-            if self.audio_service:
-                try:
-                    deleted_count = await self.audio_service.delete_all_user_files(user_id)
-                    if deleted_count > 0:
-                        logger.info(f"Deleted {deleted_count} audio file(s) for user {user_id}")
-                        span.set_attribute("user.deleted_files_count", deleted_count)
-                except Exception as e:
-                    logger.error(f"Error deleting audio files for user {user_id}: {e}")
-                    # Continue with user deletion even if file deletion fails
-                    # This prevents blocking user deletion if there are issues with files
-            
             # Delete user from database
+            # Note: Files are now shared and not tied to users, so no need to delete files
             deleted = await self.user_manager.delete(user_id)
             if not deleted:
                 raise HTTPException(

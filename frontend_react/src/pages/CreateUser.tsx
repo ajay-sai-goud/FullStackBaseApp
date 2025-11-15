@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getPermissions, createUser } from '../services/api';
 import { validatePasswordStrength, validateEmailFormat } from '../utils/validation';
 import Button from '../components/Button';
+import { Permissions } from '../utils/permissions';
 
 const CreateUser: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const CreateUser: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([Permissions.READ_AUDIO]);
   const [isPermissionsOpen, setIsPermissionsOpen] = useState<boolean>(false);
   
   // UI state
@@ -93,6 +94,8 @@ const CreateUser: React.FC = () => {
 
     if (selectedPermissions.length === 0) {
       errors.permissions = 'At least one permission is required';
+    } else if (!selectedPermissions.includes(Permissions.READ_AUDIO)) {
+      errors.permissions = 'read:audio is a required permission';
     }
 
     setValidationErrors(errors);
@@ -101,6 +104,9 @@ const CreateUser: React.FC = () => {
 
   // Handle permission toggle
   const handlePermissionToggle = (permission: string): void => {
+    if (permission === Permissions.READ_AUDIO) {
+      return; // Prevent unchecking read:audio
+    }
     if (selectedPermissions.includes(permission)) {
       setSelectedPermissions(selectedPermissions.filter((p) => p !== permission));
     } else {
@@ -111,7 +117,7 @@ const CreateUser: React.FC = () => {
   // Handle select all permissions
   const handleSelectAll = (): void => {
     if (selectedPermissions.length === availablePermissions.length) {
-      setSelectedPermissions([]);
+      setSelectedPermissions([Permissions.READ_AUDIO]);
     } else {
       setSelectedPermissions([...availablePermissions]);
     }
@@ -187,7 +193,7 @@ const CreateUser: React.FC = () => {
       </div>
 
       <div className="create-user-card">
-        <form onSubmit={handleSubmit} className="create-user-form">
+        <form onSubmit={handleSubmit} className="create-user-form" noValidate>
           {/* First Name */}
           <div className="form-group">
             <label htmlFor="firstName">First Name *</label>
@@ -326,7 +332,7 @@ const CreateUser: React.FC = () => {
                           type="checkbox"
                           checked={selectedPermissions.includes(permission)}
                           onChange={() => handlePermissionToggle(permission)}
-                          disabled={loading}
+                          disabled={loading || permission === Permissions.READ_AUDIO}
                         />
                         <span>{permission}</span>
                       </label>

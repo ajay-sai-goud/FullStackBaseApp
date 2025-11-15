@@ -13,16 +13,14 @@ if TYPE_CHECKING:
 class IAudioService(Protocol):
     """Protocol interface for audio file service operations."""
     
-    async def list_user_files(
+    async def list_all_files(
         self,
-        user_id: str,
         skip: int = 0,
         limit: int = 100
     ) -> List["AudioFileResponse"]:
-        """Get all files for a user.
+        """Get all files.
         
         Args:
-            user_id: The ID of the user whose files to retrieve
             skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
             
@@ -33,27 +31,24 @@ class IAudioService(Protocol):
     
     async def get_file_for_playback(
         self,
-        file_id: str,
-        user_id: str
+        file_id: str
     ) -> "AudioPlayResponse":
-        """Get signed URL for file playback. Verifies ownership.
+        """Get signed URL for file playback.
         
         Args:
             file_id: The ID of the file to get playback URL for
-            user_id: The ID of the user requesting playback (for ownership verification)
             
         Returns:
             AudioPlayResponse with signed_url and expires_in
             
         Raises:
-            HTTPException: If file not found or access denied
+            HTTPException: If file not found
         """
         ...
     
     async def upload_file(
         self,
-        file: UploadFile,
-        user_id: str
+        file: UploadFile
     ) -> "AudioFileResponse":
         """Upload file to cloud storage and save metadata in database.
         
@@ -62,7 +57,6 @@ class IAudioService(Protocol):
         
         Args:
             file: The audio file to upload
-            user_id: The ID of the user uploading the file
             
         Returns:
             AudioFileResponse with file details
@@ -75,56 +69,36 @@ class IAudioService(Protocol):
     async def update_file(
         self,
         file_id: str,
-        user_id: str,
         file_name: Optional[str] = None
     ) -> "AudioFileResponse":
-        """Update file metadata. Verifies ownership before allowing update.
+        """Update file metadata.
         
         Args:
             file_id: The ID of the file to update
-            user_id: The ID of the user requesting update (for ownership verification)
             file_name: Optional new filename for the audio file
             
         Returns:
             AudioFileResponse with updated file details
             
         Raises:
-            HTTPException: If file not found or access denied
+            HTTPException: If file not found
         """
         ...
     
     async def delete_file(
         self,
-        file_id: str,
-        user_id: str
+        file_id: str
     ) -> bool:
-        """Delete file from S3 and database. Verifies ownership before allowing delete.
+        """Delete file from S3 and database.
         
         Args:
             file_id: The ID of the file to delete
-            user_id: The ID of the user requesting delete (for ownership verification)
             
         Returns:
             True if deletion was successful
             
         Raises:
-            HTTPException: If file not found, access denied, or deletion fails
-        """
-        ...
-    
-    async def delete_all_user_files(self, user_id: str) -> int:
-        """Delete all audio files for a user from S3 and database.
-        
-        Args:
-            user_id: The ID of the user whose files should be deleted
-            
-        Returns:
-            Number of files successfully deleted from the database
-            
-        Note:
-            - Errors during S3 deletion are logged but don't stop the process
-            - Errors during database deletion are logged but don't stop the process
-            - Returns count of files deleted from database (even if S3 deletion failed)
+            HTTPException: If file not found or deletion fails
         """
         ...
 

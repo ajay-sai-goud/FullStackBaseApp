@@ -43,9 +43,9 @@ class Permissions:
 
 
 # Default permissions for new users
+# read:audio is required and cannot be removed
 DEFAULT_USER_PERMISSIONS = [
     Permissions.READ_AUDIO,
-    Permissions.WRITE_AUDIO,
 ]
 
 # Role-based permission mappings

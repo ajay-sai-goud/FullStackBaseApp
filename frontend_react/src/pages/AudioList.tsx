@@ -161,7 +161,7 @@ const AudioList: React.FC = () => {
       <div className="page-container">
         <div className="audio-list-header">
           <h1>My Audio Files</h1>
-          {hasAnyPermission(Permissions.WRITE_AUDIO, Permissions.ADMIN) && (
+          {files.length > 0 && hasAnyPermission(Permissions.WRITE_AUDIO, Permissions.ADMIN) && (
             <div className="header-actions">
               <Button onClick={() => setIsUploadModalOpen(true)} variant="primary">
                 Upload Audio
@@ -170,7 +170,19 @@ const AudioList: React.FC = () => {
           )}
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <span>{error}</span>
+            <button 
+              onClick={() => setError(null)} 
+              className="close-error-btn"
+              aria-label="Close error message"
+              type="button"
+            >
+              &times;
+            </button>
+          </div>
+        )}
 
         {files.length === 0 ? (
           <div className="empty-state">

@@ -1,12 +1,12 @@
 """Authentication request/response schemas."""
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from app.utils.validators import validate_email_format, validate_password_strength
+from app.utils.validators import validate_email_format
 
 
 class LoginRequest(BaseModel):
     """Request schema for user login."""
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., description="User password (min 6 chars, must contain: 1 uppercase, 1 lowercase, 1 number, 1 special char @$!%*?&#)")
+    password: str = Field(..., description="User password")
     
     # Use centralized validators
     @field_validator('email', mode='before')
@@ -19,17 +19,6 @@ class LoginRequest(BaseModel):
         if not v:
             raise ValueError("Email cannot be empty or whitespace only")
         return validate_email_format(v)
-    
-    @field_validator('password', mode='before')
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        """Validate password using centralized validator."""
-        if not isinstance(v, str):
-            raise ValueError("Password must be a string")
-        v = v.strip()
-        if not v:
-            raise ValueError("Password cannot be empty or whitespace only")
-        return validate_password_strength(v)
 
 
 class TokenResponse(BaseModel):

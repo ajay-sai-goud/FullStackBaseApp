@@ -1,4 +1,5 @@
 """Audio file service - application layer."""
+import os
 from typing import List, Tuple, Optional, TYPE_CHECKING
 from fastapi import UploadFile, HTTPException, status
 from loguru import logger
@@ -38,10 +39,9 @@ class AudioService:
         self.file_manager = file_manager
         self.storage_service = storage_service
     
-    async def list_user_files(self, user_id: str, skip: int = 0, limit: int = 100) -> List[AudioFileResponse]:
-        """Get all files for a user."""
-        files, total_count = await self.file_manager.find_by_user_id(
-            user_id=user_id,
+    async def list_all_files(self, skip: int = 0, limit: int = 100) -> List[AudioFileResponse]:
+        """Get all files."""
+        files, total_count = await self.file_manager.find_all(
             skip=skip,
             limit=limit
         )
@@ -60,20 +60,16 @@ class AudioService:
     
     async def get_file_for_playback(
         self,
-        file_id: str,
-        user_id: str
+        file_id: str
     ) -> AudioPlayResponse:
-        """Get signed URL for file playback. Verifies ownership."""
-        # Verify file ownership
-        file = await self.file_manager.find_by_user_and_file_id(
-            user_id=user_id,
-            file_id=file_id
-        )
+        """Get signed URL for file playback."""
+        # Find file by ID
+        file = await self.file_manager.find_by_id(file_id)
         
         if not file:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found or access denied"
+                detail="File not found"
             )
         
         # Generate signed URL (expires in 1 hour)
@@ -90,12 +86,14 @@ class AudioService:
     async def upload_file(
         self,
         file: UploadFile,
-        user_id: str
     ) -> AudioFileResponse:
         """Upload file to cloud storage and save metadata in database.
         
         Validates file type, extension, and size before upload.
         Generates file_id before upload to ensure S3 key matches database file_id.
+        
+        Args:
+            file: The file to upload
         """
         # Comprehensive validation (MIME type, extension, size)
         is_valid, error_message = validate_audio_file(
@@ -130,7 +128,6 @@ class AudioService:
             file_url = await self.storage_service.upload_file(
                 file_content=file_content,
                 file_name=file.filename or "unknown",
-                user_id=user_id,
                 file_id=file_id,
                 content_type=file.content_type
             )
@@ -150,7 +147,6 @@ class AudioService:
         # Create audio file record with pre-generated file_id
         audio_file = AudioFile(
             id=file_id,  # Use the file_id we generated before upload
-            user_id=user_id,
             file_type=file.content_type,
             file_name=file.filename or "unknown",
             file_url=file_url,
@@ -160,7 +156,7 @@ class AudioService:
         # Save to database (will use the provided file_id)
         created_file = await self.file_manager.create(audio_file)
         
-        logger.info(f"File uploaded successfully: {created_file.id} for user {user_id}")
+        logger.info(f"File uploaded successfully: {created_file.id}")
         
         return AudioFileResponse(
             id=created_file.id,
@@ -174,30 +170,36 @@ class AudioService:
     async def update_file(
         self,
         file_id: str,
-        user_id: str,
         file_name: Optional[str] = None
     ) -> AudioFileResponse:
-        """Update file metadata. Verifies ownership before allowing update."""
-        # Verify file ownership
-        file = await self.file_manager.find_by_user_and_file_id(
-            user_id=user_id,
-            file_id=file_id
-        )
+        """Update file metadata."""
+        # Find file by ID
+        file = await self.file_manager.find_by_id(file_id)
         
         if not file:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found or access denied"
+                detail="File not found"
             )
         
         # Update file name if provided
         if file_name is not None:
+            # Validate that file extension matches original file
+            original_ext = os.path.splitext(file.file_name)[1].lower()
+            new_ext = os.path.splitext(file_name)[1].lower()
+            
+            if original_ext != new_ext:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File extension must match original file. Original extension: {original_ext}, provided: {new_ext}"
+                )
+            
             file.file_name = file_name
         
         # Save updated file
         updated_file = await self.file_manager.save(file)
         
-        logger.info(f"Updated file {file_id} for user {user_id}")
+        logger.info(f"Updated file {file_id}")
         
         return AudioFileResponse(
             id=updated_file.id,
@@ -210,20 +212,16 @@ class AudioService:
     
     async def delete_file(
         self,
-        file_id: str,
-        user_id: str
+        file_id: str
     ) -> bool:
-        """Delete file from S3 and database. Verifies ownership before allowing delete."""
-        # Verify file ownership
-        file = await self.file_manager.find_by_user_and_file_id(
-            user_id=user_id,
-            file_id=file_id
-        )
+        """Delete file from S3 and database."""
+        # Find file by ID
+        file = await self.file_manager.find_by_id(file_id)
         
         if not file:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found or access denied"
+                detail="File not found"
             )
         
         # Delete from S3 storage
@@ -240,7 +238,7 @@ class AudioService:
         deleted_from_db = await self.file_manager.delete(file_id)
         
         if deleted_from_db:
-            logger.info(f"Deleted file {file_id} for user {user_id}")
+            logger.info(f"Deleted file {file_id}")
             return True
         else:
             logger.error(f"Failed to delete file {file_id} from database")
@@ -248,56 +246,4 @@ class AudioService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete file from database"
             )
-
-    async def delete_all_user_files(self, user_id: str) -> int:
-        """Delete all audio files for a user from S3 and database.
-        
-        This method handles bulk deletion of all files associated with a user.
-        It deletes files from both S3 storage and the database.
-        
-        Args:
-            user_id: The ID of the user whose files should be deleted
-            
-        Returns:
-            Number of files successfully deleted from the database
-            
-        Note:
-            - Errors during S3 deletion are logged but don't stop the process
-            - Errors during database deletion are logged but don't stop the process
-            - Returns count of files deleted from database (even if S3 deletion failed)
-        """
-        deleted_files_count = 0
-        try:
-            # Find all audio files for this user
-            files, _ = await self.file_manager.find_by_user_id(
-                user_id=user_id,
-                skip=0,
-                limit=10000  # Large limit to get all files
-            )
-            for file in files:
-                try:
-                    # Delete from S3 storage
-                    deleted_from_s3 = await self.storage_service.delete_file(file.file_url)
-                    if not deleted_from_s3:
-                        logger.warning(f"Failed to delete file from S3: {file.file_url}, but continuing with database deletion")
-                except Exception as e:
-                    logger.error(f"Error deleting file {file.id} from S3: {e}")
-                    # Continue with database deletion even if S3 deletion fails
-                
-                # Delete from database
-                deleted_from_db = await self.file_manager.delete(file.id)
-                if deleted_from_db:
-                    deleted_files_count += 1
-                    logger.info(f"Deleted audio file {file.id} for user {user_id}")
-                else:
-                    logger.warning(f"Failed to delete audio file {file.id} from database")
-            
-            if deleted_files_count > 0:
-                logger.info(f"Deleted {deleted_files_count} audio file(s) for user {user_id}")
-            
-            return deleted_files_count
-        except Exception as e:
-            logger.error(f"Error deleting audio files for user {user_id}: {e}")
-            # Return count of files deleted so far, even if there was an error
-            return deleted_files_count
 

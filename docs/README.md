@@ -1,10 +1,10 @@
-# Developer Setup and Design Rationale
+# Full Stack Audio Application
 
-This document provides a comprehensive guide to setting up the project and explains the reasoning behind its architectural and folder structure choices.
+This document provides a comprehensive guide to setting up the project, understanding its architecture, and using its features.
 
 ## 1. Local Development Setup
 
-These steps will guide you through setting up and running the application locally using Docker. This guide assumes you have already cloned the repository.
+These steps will guide you through setting up and running the application locally using Docker.
 
 ### Prerequisites
 
@@ -12,7 +12,7 @@ These steps will guide you through setting up and running the application locall
 
 ### Step 1: Create and Configure the `.env` File
 
-The project uses a `.env` file to manage environment variables. A template is provided to make this process easier.
+The project uses a `.env` file to manage environment variables.
 
 1.  **Create the `.env` file**:
     Copy the example file to create your local configuration file.
@@ -35,8 +35,8 @@ The project uses a `.env` file to manage environment variables. A template is pr
         ```
     -   Copy the output and paste it into your `.env` file for the `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` variables.
 
-3.  **Configure AWS S3 Credentials (Optional)**:
-    If you plan to use the file upload functionality, add your AWS credentials and S3 bucket details to the `.env` file:
+3.  **Configure AWS S3 Credentials**:
+    For file upload functionality, add your AWS credentials and S3 bucket details to the `.env` file:
     ```env
     AWS_ACCESS_KEY_ID=<your_access_key>
     AWS_SECRET_ACCESS_KEY=<your_secret_key>
@@ -63,17 +63,29 @@ Once the containers are running, you can access the application:
 -   **Backend API**: [http://localhost:8000](http://localhost:8000)
 -   **API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-The default admin user credentials (if not changed in `.env`) are:
+The default admin user is created on startup with the credentials from your `.env` file. The defaults are:
 -   **Email**: `admin@example.com`
 -   **Password**: `Admin@password123`
 
-## 2. Architectural & Folder Structure Rationale
+## 2. Key Features
 
-The project is structured to be scalable, maintainable, and easy to navigate, following industry best practices for both backend and frontend development.
+### User Management
+-   **Authentication**: Secure login with JWT (RS256).
+-   **Permissions**: Role-based access control for different API endpoints.
+-   **Admin User**: A default admin user is created on startup, with a deterministic ID to prevent duplicates in a multi-worker environment.
+
+### Audio File Management
+-   **Shared File System**: All audio files are stored in a shared pool, accessible to any authenticated user with `read:audio` permission. Files are not tied to individual users.
+-   **Cloud Storage**: Files are uploaded to AWS S3, with only metadata stored in the database.
+-   **S3 Path**: The S3 object key is structured as `{file_id}/{filename}` for direct mapping to the database record.
+
+## 3. Architectural & Folder Structure Rationale
+
+The project is structured to be scalable, maintainable, and easy to navigate, following industry best practices.
 
 ### Backend (FastAPI)
 
-The backend follows principles from **Domain-Driven Design (DDD)** and enforces **SOLID principles** to ensure a clean and decoupled architecture. The structure separates concerns into distinct layers.
+The backend follows principles from **Domain-Driven Design (DDD)** and enforces **SOLID principles** to ensure a clean and decoupled architecture.
 
 ```
 /app
@@ -84,25 +96,18 @@ The backend follows principles from **Domain-Driven Design (DDD)** and enforces 
 └── utils/        # Shared Utilities
 ```
 
--   **`api/`**: This is the presentation layer. Its only responsibility is to define API endpoints, receive HTTP requests, and delegate the work to the appropriate service. It contains no business logic. This adheres to the **Single Responsibility Principle (SRP)**.
-
--   **`services/`**: This is the heart of the application's business logic. Each service (e.g., `UserService`, `AudioService`) encapsulates the logic for a specific domain. Services are decoupled from the database implementation and other services by depending on **interfaces (Protocols)**, which follows the **Dependency Inversion Principle (DIP)**.
-
--   **`core/`**: This directory contains the application's core infrastructure.
-    -   `database/`: Manages the database connection and data access layer (e.g., `UserManager`). This isolates data access logic from the rest of the application.
-    -   `dependencies.py`: Centralizes dependency injection, making it easy to manage and swap implementations (**OCP** and **DIP**).
-    -   `lifespan.py`: Handles application startup and shutdown events.
-
--   **`schemas/`**: Contains all Pydantic models used for request/response validation and serialization. These act as the data contracts for the API, ensuring that all data entering and leaving the system is valid and well-defined.
-
--   **`utils/`**: A collection of pure, stateless utility functions (e.g., password hashing, ID generation) that can be used anywhere in the application without creating dependencies.
+-   **`api/`**: Defines API endpoints, receives requests, and delegates work to services. Contains no business logic.
+-   **`services/`**: The heart of the application's business logic. Services are decoupled from the database and other services by depending on **interfaces (Protocols)**.
+-   **`core/`**: Contains the application's core infrastructure, including database connection, dependency injection, and application startup/shutdown logic (`lifespan.py`).
+-   **`schemas/`**: Pydantic models for request/response validation.
+-   **`utils/`**: Shared, stateless utility functions (e.g., password hashing, deterministic ID generation).
 
 **Why this structure?**
-This layered architecture makes the application easier to test, maintain, and scale. For example, the database can be swapped out by simply changing the implementation in `core/database/` and updating `dependencies.py`, with no changes needed in the service or API layers.
+This layered architecture makes the application easier to test, maintain, and scale. The database can be swapped with minimal changes to the service or API layers.
 
 ### Frontend (React)
 
-The frontend is structured to promote component reusability, separation of concerns, and a scalable development workflow.
+The frontend is structured for component reusability and separation of concerns.
 
 ```
 /src
@@ -114,17 +119,12 @@ The frontend is structured to promote component reusability, separation of conce
 └── styles/       # Global and shared styles
 ```
 
--   **`pages/`**: Each file in this directory represents a full page or screen in the application (e.g., `Login.tsx`, `AudioList.tsx`). These components are responsible for the layout of the page and composing smaller components together.
-
--   **`components/`**: This directory contains smaller, reusable components that are used across multiple pages (e.g., `Button.tsx`, `AudioPlayer.tsx`). This approach keeps the code DRY (Don't Repeat Yourself) and ensures a consistent UI.
-
--   **`services/`**: This layer is responsible for all communication with the backend API. All `axios` or `fetch` calls are centralized here. This decouples the UI components from the specifics of the API, making it easy to update API endpoints without changing the components.
-
--   **`contexts/`**: For managing global state that needs to be accessed by many components (like the user's authentication status and JWT). This avoids "prop drilling" and provides a clean way to share state across the application.
-
--   **`hooks/`**: Contains custom React hooks that encapsulate reusable logic (e.g., managing the auth token from local storage). This helps keep components clean and focused on rendering the UI.
-
--   **`styles/`**: Centralizes global styles, CSS variables, and shared stylesheets, ensuring a consistent look and feel across the application.
+-   **`pages/`**: Full-page components that compose smaller components.
+-   **`components/`**: Smaller, reusable components used across multiple pages (e.g., `Button`, `AudioPlayer`).
+-   **`services/`**: Centralized API communication layer, decoupling UI components from the API.
+-   **`contexts/`**: Global state management for authentication and JWT.
+-   **`hooks/`**: Reusable logic encapsulated in custom React hooks.
+-   **`styles/`**: Centralized global and shared styles.
 
 **Why this structure?**
-This component-based and feature-oriented structure makes the codebase easy to understand and scale. When working on a feature, a developer can easily locate the relevant page, components, and API services, leading to a more efficient development process.
+This component-based structure makes the codebase easy to understand and scale, leading to a more efficient development process.

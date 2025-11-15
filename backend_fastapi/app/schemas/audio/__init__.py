@@ -6,7 +6,8 @@ from app.schemas.audio.schemas import (
     AudioPlayResponse,
     AudioFileIdPathParams,
     AudioFileListQueryParams,
-    AudioFileUpdate
+    AudioFileUpdate,
+    AudioFileUpload,
 )
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "AudioPlayResponse",
     "AudioFileIdPathParams",
     "AudioFileListQueryParams",
-    "AudioFileUpdate"
+    "AudioFileUpdate",
+    "AudioFileUpload",
 ]

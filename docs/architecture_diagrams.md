@@ -50,7 +50,7 @@ sequenceDiagram
     alt Successful Login
         Backend->>Backend: Generate JWT (RS256)
         Backend-->>Frontend: Return JWT Token
-        Frontend->>Frontend: Store JWT in local storage/state
+        Frontend->>Frontend: Store JWT in state/storage
         Frontend-->>User: Redirect to dashboard
     else Invalid Credentials
         Backend-->>Frontend: Return 401 Unauthorized error
@@ -60,7 +60,7 @@ sequenceDiagram
 
 ## 3. Audio Upload Flow
 
-This diagram shows the steps involved when a user uploads an audio file.
+This diagram shows the steps involved when a user uploads an audio file to the shared file system.
 
 ```mermaid
 sequenceDiagram
@@ -73,16 +73,17 @@ sequenceDiagram
     Frontend->>Backend: POST /api/audio/upload (multipart/form-data with JWT)
     Backend->>Backend: Authenticate user via JWT
     Backend->>Backend: Validate file (type, size)
-    Backend->>S3: Upload file stream
-    S3-->>Backend: Return file URL
-    Backend->>Backend: Store file metadata (URL, user_id, etc.) in MongoDB
+    Backend->>Backend: Generate unique file ID
+    Backend->>S3: Upload file stream with key: {file_id}/{filename}
+    S3-->>Backend: Confirm upload success
+    Backend->>Backend: Store file metadata (S3 URI, etc.) in MongoDB
     Backend-->>Frontend: Return success response with file details
     Frontend-->>User: Show success message and refresh file list
 ```
 
 ## 4. Audio Playback Flow
 
-This diagram explains how a user plays an audio file, using a secure, short-lived signed URL.
+This diagram explains how a user plays an audio file using a secure, short-lived signed URL.
 
 ```mermaid
 sequenceDiagram
@@ -94,7 +95,7 @@ sequenceDiagram
     User->>Frontend: Clicks 'Play' on an audio file
     Frontend->>Backend: GET /api/audio/{id}/play (with JWT)
     Backend->>Backend: Authenticate user via JWT
-    Backend->>Backend: Verify file ownership (user can only access their own files)
+    Backend->>Backend: Find file by ID in MongoDB
     Backend->>S3: Request a signed URL for the S3 object
     S3-->>Backend: Generate and return signed URL
     Backend-->>Frontend: Return signed URL with expiration time

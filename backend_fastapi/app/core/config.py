@@ -13,14 +13,14 @@ class LogLevel(str, Enum):
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = os.getenv("APP_NAME", "FastAPI")
+    APP_NAME: str = os.getenv("APP_NAME", "FastAPI Boilerplate")
     
     # Logging configuration
     LOG_LEVEL: LogLevel = LogLevel.INFO
     LOGURU_JSON_LOGS: bool = os.getenv("LOGURU_JSON_LOGS", False)
 
     # OpenTelemetry configuration
-    OTEL_SERVICE_NAME: str = os.getenv("OTEL_SERVICE_NAME", "fastapi")
+    OTEL_SERVICE_NAME: str = os.getenv("OTEL_SERVICE_NAME", "fastapi-boilerplate")
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     OTEL_DEBUG_LOG_SPANS: bool = os.getenv("OTEL_DEBUG_LOG_SPANS", False)
 

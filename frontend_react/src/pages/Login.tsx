@@ -15,6 +15,12 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError('');
+
+    if (!email || !password) {
+      setError('Please fill out both email and password fields.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -39,7 +45,7 @@ const Login: React.FC = () => {
           <p>Sign in to access your audio files</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <form onSubmit={handleSubmit} className="login-form" noValidate>
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input

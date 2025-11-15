@@ -13,7 +13,6 @@ class IStorageService(Protocol):
         self,
         file_content: bytes,
         file_name: str,
-        user_id: str,
         file_id: str,
         content_type: str
     ) -> str:
@@ -22,7 +21,6 @@ class IStorageService(Protocol):
         Args:
             file_content: File content as bytes
             file_name: Original filename
-            user_id: User ID who owns the file
             file_id: Database file ID (must be generated before calling this method)
             content_type: MIME type of the file
             

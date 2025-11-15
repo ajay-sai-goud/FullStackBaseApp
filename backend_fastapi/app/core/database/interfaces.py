@@ -52,21 +52,12 @@ class IFileManager(Protocol):
         """Find file by ID."""
         ...
     
-    async def find_by_user_id(
+    async def find_all(
         self,
-        user_id: str,
         skip: int = 0,
         limit: int = 100
     ) -> Tuple[List[AudioFile], int]:
-        """Find all files for a user with pagination. Returns (files, total_count)."""
-        ...
-    
-    async def find_by_user_and_file_id(
-        self,
-        user_id: str,
-        file_id: str
-    ) -> Optional[AudioFile]:
-        """Find file by user ID and file ID (for ownership verification)."""
+        """Find all files with pagination. Returns (files, total_count)."""
         ...
     
     async def save(self, audio_file: AudioFile) -> AudioFile:

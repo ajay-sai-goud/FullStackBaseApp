@@ -4,6 +4,7 @@ import { getUser, updateUser, getPermissions } from '../services/api';
 import { UpdateUserRequest } from '../types';
 import { validatePasswordStrength, validateEmailFormat } from '../utils/validation';
 import Button from '../components/Button';
+import { Permissions } from '../utils/permissions';
 
 const EditUser: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -113,6 +114,8 @@ const EditUser: React.FC = () => {
 
     if (selectedPermissions.length === 0) {
       errors.permissions = 'At least one permission is required';
+    } else if (!selectedPermissions.includes(Permissions.READ_AUDIO)) {
+      errors.permissions = 'read:audio is a required permission';
     }
 
     setValidationErrors(errors);
@@ -121,6 +124,9 @@ const EditUser: React.FC = () => {
 
   // Handle permission toggle
   const handlePermissionToggle = (permission: string): void => {
+    if (permission === Permissions.READ_AUDIO) {
+      return; // Prevent unchecking read:audio
+    }
     if (selectedPermissions.includes(permission)) {
       setSelectedPermissions(selectedPermissions.filter((p) => p !== permission));
     } else {
@@ -131,7 +137,7 @@ const EditUser: React.FC = () => {
   // Handle select all permissions
   const handleSelectAll = (): void => {
     if (selectedPermissions.length === availablePermissions.length) {
-      setSelectedPermissions([]);
+      setSelectedPermissions([Permissions.READ_AUDIO]);
     } else {
       setSelectedPermissions([...availablePermissions]);
     }
@@ -155,7 +161,7 @@ const EditUser: React.FC = () => {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         email: email.trim(),
-        permissions: selectedPermissions,
+        permissions: selectedPermissions.includes(Permissions.READ_AUDIO) ? selectedPermissions : [...selectedPermissions, Permissions.READ_AUDIO],
       };
 
       if (password) {
@@ -200,7 +206,7 @@ const EditUser: React.FC = () => {
       </div>
 
       <div className="create-user-card">
-        <form onSubmit={handleSubmit} className="create-user-form">
+        <form onSubmit={handleSubmit} className="create-user-form" noValidate>
           {/* First Name */}
           <div className="form-group">
             <label htmlFor="firstName">First Name *</label>
@@ -342,7 +348,7 @@ const EditUser: React.FC = () => {
                           type="checkbox"
                           checked={selectedPermissions.includes(permission)}
                           onChange={() => handlePermissionToggle(permission)}
-                          disabled={loading}
+                          disabled={loading || permission === Permissions.READ_AUDIO}
                         />
                         <span>{permission}</span>
                       </label>

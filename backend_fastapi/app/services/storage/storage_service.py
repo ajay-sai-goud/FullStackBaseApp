@@ -52,22 +52,21 @@ class StorageService:
                 config=Config(signature_version='s3v4')
             )
     
-    def _generate_file_key(self, user_id: str, file_id: str, file_name: str) -> str:
+    def _generate_file_key(self, file_id: str, file_name: str) -> str:
         """Generate unique S3 key for file using database file_id.
         
-        Structure: users/{user_id}/{file_id}/{filename}
+        Structure: {file_id}/{filename}
         This ensures direct mapping between S3 keys and database file_id.
         """
         # Sanitize filename for S3 key
         safe_filename = file_name.replace(' ', '_').replace('/', '_')
         
-        return f"users/{user_id}/{file_id}/{safe_filename}"
+        return f"{file_id}/{safe_filename}"
     
     async def upload_file(
         self,
         file_content: bytes,
         file_name: str,
-        user_id: str,
         file_id: str,
         content_type: str
     ) -> str:
@@ -76,7 +75,6 @@ class StorageService:
         Args:
             file_content: File content as bytes
             file_name: Original filename
-            user_id: User ID who owns the file
             file_id: Database file ID (must be generated before calling this method)
             content_type: MIME type of the file
             
@@ -85,7 +83,7 @@ class StorageService:
         """
         try:
             # Generate S3 key using database file_id
-            s3_key = self._generate_file_key(user_id, file_id, file_name)
+            s3_key = self._generate_file_key(file_id, file_name)
             
             # Upload to S3 (run in thread pool for async)
             await asyncio.to_thread(

@@ -95,8 +95,14 @@ class UserManager:
             return user
     
     async def create(self, user: User) -> User:
-        """Create a new user."""
-        user.id = generate_user_id()
+        """Create a new user.
+        
+        If user.id is already set, uses that ID (useful for deterministic IDs).
+        Otherwise, generates a new random ID.
+        """
+        if not user.id:
+            user.id = generate_user_id()
+        
         user.created_at = datetime.utcnow()
         user.updated_at = datetime.utcnow()
         user_dict = user.to_dict()

@@ -9,6 +9,7 @@ from app.core.database.mongodb.user_manager import UserManager
 from app.core.database.interfaces import IUserManager
 from app.schemas.user.models import User
 from app.utils.password import hash_password
+from app.utils.id_utils import generate_deterministic_user_id
 from app.core.constants import Permissions
 
 
@@ -41,15 +42,21 @@ async def lifespan(app: FastAPI):
     # Initialize database connection
     from app.core.database.connection import DatabaseManager
     
-    # Get database using MONGO_URI from settings
+    # Get database for all workers
     db = DatabaseManager.get_database()
 
-    # Create default admin user if it doesn't exist
-    # Use helper function to maintain DI pattern
+    # Create default admin user if it doesn't exist (idempotent - safe for concurrent workers)
+    # Use deterministic UUID based on email so all workers generate the same ID
+    # This ensures MongoDB's _id unique constraint prevents duplicates
     user_manager: IUserManager = _get_user_manager_for_startup(db)
-    admin_user = await user_manager.find_by_email(settings.ADMIN_EMAIL)
-    if not admin_user:
+    
+    # Generate deterministic ID for admin user based on email
+    # This ensures all workers try to create the same _id, so only one succeeds
+    admin_id = generate_deterministic_user_id(settings.ADMIN_EMAIL)
+    
+    try:
         admin_user = User(
+            id=admin_id,  # Set deterministic ID before creation
             first_name="Admin",
             last_name="User",
             email=settings.ADMIN_EMAIL,
@@ -57,9 +64,19 @@ async def lifespan(app: FastAPI):
             permissions=Permissions.ALL_PERMISSIONS,
         )
         await user_manager.create(admin_user)
-        logger.info(f"Default admin user created: {settings.ADMIN_EMAIL}")
+        logger.info(f"Default admin user created: {settings.ADMIN_EMAIL} (ID: {admin_id})")
+    except Exception as e:
+        # Check if it's a duplicate key error (E11000) - means admin already exists
+        error_str = str(e)
+        if "E11000" in error_str or "duplicate key" in error_str.lower():
+            # Admin user already exists (either from previous startup or created by another worker)
+            # This is expected and fine - the operation is idempotent
+            logger.debug(f"Default admin user already exists: {settings.ADMIN_EMAIL} (ID: {admin_id})")
+        else:
+            # Some other error occurred - log as warning but don't fail startup
+            logger.warning(f"Unexpected error creating default admin user: {e}")
     
-    # Create indexes
+    # Create indexes (idempotent - safe to run multiple times)
     try:
         # User collection indexes
         users_collection = db["users"]
@@ -69,9 +86,7 @@ async def lifespan(app: FastAPI):
         
         # Files collection indexes
         files_collection = db["files"]
-        await files_collection.create_index("user_id")
         await files_collection.create_index("created_at")
-        await files_collection.create_index([("user_id", 1), ("created_at", -1)])
         logger.info("Created indexes for files collection")
     except Exception as e:
         logger.warning(f"Error creating indexes (may already exist): {e}")

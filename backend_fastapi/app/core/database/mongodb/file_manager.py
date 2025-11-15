@@ -27,17 +27,15 @@ class FileManager:
             logger.error(f"Error finding file by ID {file_id}: {e}")
             return None
     
-    async def find_by_user_id(
+    async def find_all(
         self,
-        user_id: str,
         skip: int = 0,
         limit: int = 100
     ) -> Tuple[List[AudioFile], int]:
-        """Find all files for a user with pagination. Returns (files, total_count)."""
+        """Find all files with pagination. Returns (files, total_count)."""
         try:
             # Use aggregation pipeline with $facet for count + data in single query
             pipeline = [
-                {"$match": {"user_id": user_id}},
                 {"$facet": {
                     "data": [
                         {"$sort": {"created_at": -1}},
@@ -60,26 +58,8 @@ class FileManager:
             files = [AudioFile.from_dict(doc) for doc in files_data]
             return files, total_count
         except Exception as e:
-            logger.error(f"Error finding files for user {user_id}: {e}")
+            logger.error(f"Error finding all files: {e}")
             return [], 0
-    
-    async def find_by_user_and_file_id(
-        self,
-        user_id: str,
-        file_id: str
-    ) -> Optional[AudioFile]:
-        """Find file by user ID and file ID (for ownership verification)."""
-        try:
-            doc = await self.collection.find_one({
-                "_id": file_id,
-                "user_id": user_id
-            })
-            if doc:
-                return AudioFile.from_dict(doc)
-            return None
-        except Exception as e:
-            logger.error(f"Error finding file {file_id} for user {user_id}: {e}")
-            return None
     
     async def save(self, audio_file: AudioFile) -> AudioFile:
         """Save or update file."""
